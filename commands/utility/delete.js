@@ -38,11 +38,11 @@ module.exports = {
       );
 
       console.log(`Successfully deleted command with name: ${commandName}`);
-      await interaction.reply(`Command \`${commandName}\` was successfully deleted.`);
+      await interaction.reply({ content: `Command \`${commandName}\` was successfully deleted.`, ephemeral: true});
     } catch (error) {
       console.error(`Error deleting command with name: ${commandName}`);
       console.error(error);
-      await interaction.reply(`There was an error while deleting the command \`${commandName}\`:\n\`${error.message}\``);
+      await interaction.reply({ content: `There was an error while deleting the command \`${commandName}\`:\n\`${error.message}\``, ephemeral: true })
     }
   },
 };
