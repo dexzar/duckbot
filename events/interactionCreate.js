@@ -1,9 +1,28 @@
 const { Events, Collection } = require('discord.js')
+const profileModel = require('../models/schema/profileSchema')
+const { getCurrentDate } = require('../utils/getCurrentDate')
+const currentDate = getCurrentDate()
 
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return
+
+    let profileData
+    try {
+      profileData = await profileModel.findOne({ userId: interaction.user.id })
+      if (!profileData) {
+        profileData = await profileModel.create({
+          userId: interaction.user.id,
+          userName: interaction.user.username,
+          serverId: interaction.guild.id,
+          bald: Math.floor(Math.random() * 101),
+          baldDate: currentDate
+        })
+      }
+    } catch (err) {
+      console.log(err)
+    }
 
     const command = interaction.client.commands.get(interaction.commandName)
 
@@ -40,7 +59,7 @@ module.exports = {
     setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount)
 
     try {
-      await command.execute(interaction)
+      await command.execute(interaction, profileData)
     } catch (error) {
       console.error(error)
       if (interaction.replied || interaction.deferred) {
