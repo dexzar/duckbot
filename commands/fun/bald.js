@@ -11,7 +11,11 @@
 */
 
 const { SlashCommandBuilder } = require('discord.js')
-const { CommandUsage, Bald } = require('../../models/schema') // Import the required schemas
+const {
+  logCommandUsage,
+  getBaldData,
+  checkCommandUsageLimit
+} = require('../../utils/baldUtils')
 
 module.exports = {
   cooldown: 5,
@@ -27,35 +31,25 @@ module.exports = {
   async execute(interaction, profileData) {
     const target = interaction.options.getString('target')
     let baldScore
-    let baldData
 
     try {
-      const commandUsageData = await CommandUsage.findOne({
-        userId: profileData._id,
-        commandName: 'bald',
-        date: new Date().setHours(0, 0, 0, 0)
-      })
-      if (commandUsageData && commandUsageData.commandCount >= 5) {
+      const usageLimitExceeded = await checkCommandUsageLimit(
+        profileData._id,
+        'bald'
+      )
+      if (usageLimitExceeded) {
         return interaction.reply({
-          content: 'You have used the command too many times today.'
+          content: 'You have used the command too many times today.',
+          ephemeral: true
         })
       }
 
-      baldData = await Bald.findOne({
-        userId: profileData._id,
-        date: new Date().setHours(0, 0, 0, 0)
-      })
-      if (!baldData) {
-        baldScore = Math.floor(Math.random() * 101)
-        baldData = await Bald.create({
-          userId: profileData._id,
-          date: new Date().setHours(0, 0, 0, 0),
-          dayBald: baldScore,
-          monthBald: baldScore,
-          yearBald: baldScore
-        })
-      } else {
-        baldScore = Math.floor(Math.random() * 101)
+      const { baldData, isNew } = await getBaldData(profileData._id)
+      baldScore = isNew ? baldData.dayBald : Math.floor(Math.random() * 101)
+
+      if (!isNew) {
+        baldData.dayBald = baldScore
+        await baldData.save()
       }
     } catch (err) {
       console.log(err)
@@ -75,19 +69,4 @@ module.exports = {
       )
     }
   }
-}
-
-async function logCommandUsage(userId, commandName) {
-  let today = new Date().setHours(0, 0, 0, 0)
-
-  await CommandUsage.deleteMany({
-    commandName,
-    date: { $lt: today }
-  })
-
-  await CommandUsage.findOneAndUpdate(
-    { userId, date: today, commandName },
-    { $inc: { commandCount: 1 } },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  )
 }
