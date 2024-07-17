@@ -55,7 +55,7 @@ module.exports = {
           yearBald: baldScore
         })
       } else {
-        baldScore = baldData.dayBald
+        baldScore = Math.floor(Math.random() * 101)
       }
     } catch (err) {
       console.log(err)
