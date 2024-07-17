@@ -11,10 +11,7 @@
 */
 
 const { SlashCommandBuilder } = require('discord.js')
-const { getCurrentDate } = require('../../utils/getCurrentDate')
 const { CommandUsage, Bald } = require('../../models/schema') // Import the required schemas
-
-const currentDate = getCurrentDate()
 
 module.exports = {
   cooldown: 5,
@@ -33,25 +30,26 @@ module.exports = {
     let baldData
 
     try {
-      commandUsageData = await CommandUsage.findOne({
+      const commandUsageData = await CommandUsage.findOne({
         userId: profileData._id,
-        commandName: 'bald'
+        commandName: 'bald',
+        date: new Date().setHours(0, 0, 0, 0)
       })
-      if (commandUsageData.commandCount >= 5) {
+      if (commandUsageData && commandUsageData.commandCount >= 5) {
         return interaction.reply({
-          content: 'You bald fuck stop using the command for today.'
+          content: 'You have used the command too many times today.'
         })
       }
 
       baldData = await Bald.findOne({
         userId: profileData._id,
-        date: new Date(currentDate)
+        date: new Date().setHours(0, 0, 0, 0)
       })
       if (!baldData) {
         baldScore = Math.floor(Math.random() * 101)
         baldData = await Bald.create({
           userId: profileData._id,
-          date: new Date(currentDate),
+          date: new Date().setHours(0, 0, 0, 0),
           dayBald: baldScore,
           monthBald: baldScore,
           yearBald: baldScore
@@ -81,6 +79,12 @@ module.exports = {
 
 async function logCommandUsage(userId, commandName) {
   let today = new Date().setHours(0, 0, 0, 0)
+
+  await CommandUsage.deleteMany({
+    commandName,
+    date: { $lt: today }
+  })
+
   await CommandUsage.findOneAndUpdate(
     { userId, date: today, commandName },
     { $inc: { commandCount: 1 } },
