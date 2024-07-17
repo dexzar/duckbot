@@ -1,7 +1,5 @@
 const { Events, Collection } = require('discord.js')
-const profileModel = require('../models/schema/profileSchema')
-const { getCurrentDate } = require('../utils/getCurrentDate')
-const currentDate = getCurrentDate()
+const { Profile, CommandUsage } = require('../models/schema')
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -10,24 +8,25 @@ module.exports = {
 
     let profileData
     try {
-      profileData = await profileModel.findOne({ userId: interaction.user.id })
+      profileData = await Profile.findOne({ userId: interaction.user.id })
       if (!profileData) {
-        profileData = await profileModel.create({
+        profileData = await Profile.create({
           userId: interaction.user.id,
-          userName: interaction.user.username,
-          serverId: interaction.guild.id,
-          bald: Math.floor(Math.random() * 101),
-          baldDate: currentDate
+          userName: interaction.user.username
         })
       }
     } catch (err) {
       console.log(err)
+      return interaction.reply({
+        content: 'There was an error while fetching your profile data.',
+        ephemeral: true
+      })
     }
 
     const command = interaction.client.commands.get(interaction.commandName)
 
     if (!command) {
-      console.error(`No command matching ${interaction.commandName} was f`)
+      console.error(`No command matching ${interaction.commandName} was found.`)
       return
     }
 
