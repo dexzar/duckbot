@@ -1,7 +1,8 @@
 const { CommandUsage, Bald } = require('../models/schema')
 
 const logCommandUsage = async (userId, commandName) => {
-  const today = new Date().setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
   await CommandUsage.deleteMany({
     commandName,
@@ -16,7 +17,8 @@ const logCommandUsage = async (userId, commandName) => {
 }
 
 const getBaldData = async (userId) => {
-  const currentDate = new Date.setHours(0, 0, 0, 0)
+  const currentDate = new Date()
+  currentDate.setHours(0, 0, 0, 0)
   let baldData = await Bald.findOne({
     userId,
     date: currentDate
@@ -38,7 +40,9 @@ const getBaldData = async (userId) => {
 }
 
 const checkCommandUsageLimit = async (userId, commandName) => {
-  const today = new Date().setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   const commandUsageData = await CommandUsage.findOne({
     userId,
     commandName,
