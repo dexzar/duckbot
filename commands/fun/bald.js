@@ -33,28 +33,27 @@ module.exports = {
       }
 
       const { baldData, isNew } = await getBaldData(profileData._id)
-      baldScore = isNew ? Math.floor(Math.random() * 101) : baldData.baldValue
+      baldScore = baldData.baldValue
 
-      if (isNew) {
-        baldData.baldValue = baldScore
-        await baldData.save()
-      }
-
-      await logCommandUsage(profileData._id, 'bald')
-
-      if (target) {
-        await interaction.reply(`${target} is ${baldScore}% bald.`)
-      } else {
-        await interaction.reply(
-          `${interaction.user.username} is ${baldScore}% bald.`
-        )
+      if (!isNew) {
+        baldScore = baldData.baldValue
       }
     } catch (err) {
-      console.error(err)
+      console.log(err)
       return interaction.reply({
         content: 'There was an error while fetching your bald score.',
         ephemeral: true
       })
+    }
+
+    await logCommandUsage(profileData._id, 'bald')
+
+    if (target) {
+      await interaction.reply(`${target} is ${baldScore}% bald.`)
+    } else {
+      await interaction.reply(
+        `${interaction.user.username} is ${baldScore}% bald.`
+      )
     }
   }
 }

@@ -1,8 +1,11 @@
 const Profile = require('./profile')
 const CommandUsage = require('./commandUsage')
-const DailyBald = require('./dailyBald')
-const { MonthlyBald, YearlyBald } = require('./monthlyYearlyBald')
-const GlobalLeaderboard = require('./leaderboardBald')
+const {
+  DailyBald,
+  MonthlyBald,
+  YearlyBald,
+  GlobalLeaderboard
+} = require('./bald')
 
 module.exports = {
   Profile,

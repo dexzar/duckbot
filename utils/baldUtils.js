@@ -8,7 +8,7 @@ const {
 
 const logCommandUsage = async (userId, commandName) => {
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  today.setUTCHours(0, 0, 0, 0)
 
   await CommandUsage.deleteMany({
     commandName,
@@ -24,7 +24,10 @@ const logCommandUsage = async (userId, commandName) => {
 
 const getBaldData = async (userId) => {
   const currentDate = new Date()
-  currentDate.setHours(0, 0, 0, 0)
+  currentDate.setUTCHours(0, 0, 0, 0)
+
+  const month = currentDate.getUTCMonth() + 1
+  const year = currentDate.getUTCFullYear()
 
   // Remove old daily bald checks
   await DailyBald.deleteMany({ userId, date: { $lt: currentDate } })
@@ -40,48 +43,112 @@ const getBaldData = async (userId) => {
       baldValue: baldScore
     })
 
-    // Update monthly and yearly records
-    const month = currentDate.getMonth() + 1
-    const year = currentDate.getFullYear()
+    // Fetch or create the global leaderboard for the current year
+    let globalLeaderboard = await GlobalLeaderboard.findOne({ year })
 
-    // Update or create monthly bald record
+    if (!globalLeaderboard) {
+      globalLeaderboard = new GlobalLeaderboard({
+        year,
+        monthlyTop10: [],
+        yearlyTop10: [],
+        dailyTop10: []
+      })
+    }
+
+    // Clear outdated daily top 10 entries
+    globalLeaderboard.dailyTop10 = globalLeaderboard.dailyTop10.filter(
+      (entry) =>
+        new Date(entry.date).toDateString() === currentDate.toDateString()
+    )
+
+    // Handle daily top 10
+    const existingDailyEntryIndex = globalLeaderboard.dailyTop10.findIndex(
+      (entry) => entry.userId.toString() === userId.toString()
+    )
+
+    if (existingDailyEntryIndex !== -1) {
+      if (
+        globalLeaderboard.dailyTop10[existingDailyEntryIndex].baldValue <
+        baldScore
+      ) {
+        globalLeaderboard.dailyTop10[existingDailyEntryIndex].baldValue =
+          baldScore
+        globalLeaderboard.dailyTop10[existingDailyEntryIndex].date = currentDate
+      }
+    } else {
+      globalLeaderboard.dailyTop10.push({
+        userId,
+        baldValue: baldScore,
+        date: currentDate
+      })
+    }
+
+    globalLeaderboard.dailyTop10 = globalLeaderboard.dailyTop10
+      .sort((a, b) => b.baldValue - a.baldValue)
+      .slice(0, 10)
+
+    // Handle monthly top 10
+    const existingMonthlyEntryIndex = globalLeaderboard.monthlyTop10.findIndex(
+      (entry) =>
+        entry.userId.toString() === userId.toString() && entry.month === month
+    )
+
+    if (existingMonthlyEntryIndex !== -1) {
+      if (
+        globalLeaderboard.monthlyTop10[existingMonthlyEntryIndex].baldValue <
+        baldScore
+      ) {
+        globalLeaderboard.monthlyTop10[existingMonthlyEntryIndex].baldValue =
+          baldScore
+      }
+    } else {
+      globalLeaderboard.monthlyTop10.push({
+        userId,
+        month,
+        baldValue: baldScore
+      })
+    }
+
+    globalLeaderboard.monthlyTop10 = globalLeaderboard.monthlyTop10
+      .filter((entry) => entry.month === month)
+      .sort((a, b) => b.baldValue - a.baldValue)
+      .slice(0, 10)
+
+    // Handle yearly top 10
+    const existingYearlyEntryIndex = globalLeaderboard.yearlyTop10.findIndex(
+      (entry) => entry.userId.toString() === userId.toString()
+    )
+
+    if (existingYearlyEntryIndex !== -1) {
+      if (
+        globalLeaderboard.yearlyTop10[existingYearlyEntryIndex].baldValue <
+        baldScore
+      ) {
+        globalLeaderboard.yearlyTop10[existingYearlyEntryIndex].baldValue =
+          baldScore
+      }
+    } else {
+      globalLeaderboard.yearlyTop10.push({ userId, baldValue: baldScore })
+    }
+
+    globalLeaderboard.yearlyTop10 = globalLeaderboard.yearlyTop10
+      .sort((a, b) => b.baldValue - a.baldValue)
+      .slice(0, 10)
+
+    await globalLeaderboard.save()
+
+    // Update monthly and yearly records
     await MonthlyBald.findOneAndUpdate(
       { userId, month, year },
-      { $max: { highestBald: baldScore } },
+      { highestBald: baldScore },
       { upsert: true, new: true }
     )
 
-    // Update or create yearly bald record
     await YearlyBald.findOneAndUpdate(
       { userId, year },
       { $max: { highestBald: baldScore } },
       { upsert: true, new: true }
     )
-
-    // Update global leaderboard
-    let globalRecord = await GlobalLeaderboard.findOneAndUpdate(
-      { year },
-      {
-        $push: {
-          highestDailyBald: { userId, date: currentDate, baldValue: baldScore },
-          highestMonthlyBald: { userId, month, baldValue: baldScore },
-          highestYearlyBald: { userId, baldValue: baldScore }
-        }
-      },
-      { upsert: true, new: true }
-    )
-
-    // Ensure only top 10 entries
-    const limitTop10 = (arr) =>
-      arr.sort((a, b) => b.baldValue - a.baldValue).slice(0, 10)
-
-    globalRecord.highestDailyBald = limitTop10(globalRecord.highestDailyBald)
-    globalRecord.highestMonthlyBald = limitTop10(
-      globalRecord.highestMonthlyBald
-    )
-    globalRecord.highestYearlyBald = limitTop10(globalRecord.highestYearlyBald)
-
-    await globalRecord.save()
 
     return { baldData, isNew: true }
   }
@@ -91,7 +158,7 @@ const getBaldData = async (userId) => {
 
 const checkCommandUsageLimit = async (userId, commandName) => {
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  today.setUTCHours(0, 0, 0, 0)
 
   const commandUsageData = await CommandUsage.findOne({
     userId,
