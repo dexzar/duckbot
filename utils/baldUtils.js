@@ -22,17 +22,33 @@ const logCommandUsage = async (userId, commandName) => {
   )
 }
 
+const clearOldData = async (model, dateField, currentValue) => {
+  await model.deleteMany({ [dateField]: { $ne: currentValue } })
+}
+
+const updateTop10Leaderboard = async (model, filter, update, sortField) => {
+  await model.updateOne(filter, update, { upsert: true })
+
+  const top10 = await model
+    .find(filter)
+    .sort({ [sortField]: -1 })
+    .limit(10)
+
+  await model.deleteMany({ _id: { $nin: top10.map((entry) => entry._id) } })
+}
+
 const getBaldData = async (userId) => {
   const currentDate = new Date()
-  currentDate.setUTCHours(0, 0, 0, 0)
+  currentDate.setHours(0, 0, 0, 0)
+  const currentYear = currentDate.getUTCFullYear()
+  const currentMonth = currentDate.getUTCMonth() + 1
 
-  const month = currentDate.getUTCMonth() + 1
-  const year = currentDate.getUTCFullYear()
+  // Clear old data
+  await clearOldData(DailyBald, 'date', currentDate)
+  await clearOldData(MonthlyBald, 'year', currentYear)
+  await clearOldData(YearlyBald, 'year', currentYear)
 
-  // Remove old daily bald checks
-  await DailyBald.deleteMany({ userId, date: { $lt: currentDate } })
-
-  // Fetch or create daily bald data
+  // Get or create the daily bald data
   let baldData = await DailyBald.findOne({ userId, date: currentDate })
 
   if (!baldData) {
@@ -43,78 +59,76 @@ const getBaldData = async (userId) => {
       baldValue: baldScore
     })
 
-    // Fetch or create the global leaderboard for the current year
-    let globalLeaderboard = await GlobalLeaderboard.findOne({ year })
+    // Update monthly bald data
+    await updateTop10Leaderboard(
+      MonthlyBald,
+      { userId, month: currentMonth, year: currentYear },
+      { $max: { highestBald: baldScore } },
+      'highestBald'
+    )
+
+    // Update yearly bald data
+    await updateTop10Leaderboard(
+      YearlyBald,
+      { userId, year: currentYear },
+      { $max: { highestBald: baldScore } },
+      'highestBald'
+    )
+
+    // Update global leaderboard for the current year
+    let globalLeaderboard = await GlobalLeaderboard.findOne({
+      year: currentYear
+    })
 
     if (!globalLeaderboard) {
       globalLeaderboard = new GlobalLeaderboard({
-        year,
+        year: currentYear,
+        dailyTop10: [],
         monthlyTop10: [],
-        yearlyTop10: [],
-        dailyTop10: []
+        yearlyTop10: []
       })
     }
 
-    // Clear outdated daily top 10 entries
-    globalLeaderboard.dailyTop10 = globalLeaderboard.dailyTop10.filter(
-      (entry) =>
-        new Date(entry.date).toDateString() === currentDate.toDateString()
-    )
-
-    // Handle daily top 10
-    const existingDailyEntryIndex = globalLeaderboard.dailyTop10.findIndex(
-      (entry) => entry.userId.toString() === userId.toString()
-    )
-
-    if (existingDailyEntryIndex !== -1) {
-      if (
-        globalLeaderboard.dailyTop10[existingDailyEntryIndex].baldValue <
-        baldScore
-      ) {
-        globalLeaderboard.dailyTop10[existingDailyEntryIndex].baldValue =
-          baldScore
-        globalLeaderboard.dailyTop10[existingDailyEntryIndex].date = currentDate
-      }
-    } else {
-      globalLeaderboard.dailyTop10.push({
-        userId,
-        baldValue: baldScore,
-        date: currentDate
-      })
-    }
-
+    // Daily top 10
+    globalLeaderboard.dailyTop10.push({
+      userId,
+      baldValue: baldScore,
+      date: currentDate
+    })
     globalLeaderboard.dailyTop10 = globalLeaderboard.dailyTop10
       .sort((a, b) => b.baldValue - a.baldValue)
       .slice(0, 10)
 
-    // Handle monthly top 10
-    const existingMonthlyEntryIndex = globalLeaderboard.monthlyTop10.findIndex(
-      (entry) =>
-        entry.userId.toString() === userId.toString() && entry.month === month
+    // Monthly top 10
+    const monthlyEntry = globalLeaderboard.monthlyTop10.find(
+      (entry) => entry.month === currentMonth
     )
+    if (monthlyEntry) {
+      const existingMonthlyEntryIndex = monthlyEntry.top10.findIndex(
+        (entry) => entry.userId.toString() === userId.toString()
+      )
 
-    if (existingMonthlyEntryIndex !== -1) {
-      if (
-        globalLeaderboard.monthlyTop10[existingMonthlyEntryIndex].baldValue <
-        baldScore
-      ) {
-        globalLeaderboard.monthlyTop10[existingMonthlyEntryIndex].baldValue =
-          baldScore
+      if (existingMonthlyEntryIndex !== -1) {
+        if (
+          monthlyEntry.top10[existingMonthlyEntryIndex].baldValue < baldScore
+        ) {
+          monthlyEntry.top10[existingMonthlyEntryIndex].baldValue = baldScore
+        }
+      } else {
+        monthlyEntry.top10.push({ userId, baldValue: baldScore })
       }
+
+      monthlyEntry.top10 = monthlyEntry.top10
+        .sort((a, b) => b.baldValue - a.baldValue)
+        .slice(0, 10)
     } else {
       globalLeaderboard.monthlyTop10.push({
-        userId,
-        month,
-        baldValue: baldScore
+        month: currentMonth,
+        top10: [{ userId, baldValue: baldScore }]
       })
     }
 
-    globalLeaderboard.monthlyTop10 = globalLeaderboard.monthlyTop10
-      .filter((entry) => entry.month === month)
-      .sort((a, b) => b.baldValue - a.baldValue)
-      .slice(0, 10)
-
-    // Handle yearly top 10
+    // Yearly top 10
     const existingYearlyEntryIndex = globalLeaderboard.yearlyTop10.findIndex(
       (entry) => entry.userId.toString() === userId.toString()
     )
@@ -136,20 +150,6 @@ const getBaldData = async (userId) => {
       .slice(0, 10)
 
     await globalLeaderboard.save()
-
-    // Update monthly and yearly records
-    await MonthlyBald.findOneAndUpdate(
-      { userId, month, year },
-      { highestBald: baldScore },
-      { upsert: true, new: true }
-    )
-
-    await YearlyBald.findOneAndUpdate(
-      { userId, year },
-      { $max: { highestBald: baldScore } },
-      { upsert: true, new: true }
-    )
-
     return { baldData, isNew: true }
   }
 

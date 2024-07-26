@@ -10,7 +10,7 @@ module.exports = {
     console.log(`Ready! Logged in as ${client.user.tag}`)
 
     await mongoose
-      .connect(process.env.MONGO_URI)
+      .connect(process.env.MONGO_URI_PRODUCTION)
       .then(() =>
         console.log('Successfully connected to the Mongoose database.')
       )
