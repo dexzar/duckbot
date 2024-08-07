@@ -63,11 +63,13 @@ const globalLeaderboardSchema = new mongoose.Schema({
   ]
 })
 
+globalLeaderboardSchema.index({ year: 1 })
+
 const DailyBald = mongoose.model('Daily_Bald', dailyBaldSchema)
 const MonthlyBald = mongoose.model('Monthly_Bald', monthlyBaldSchema)
 const YearlyBald = mongoose.model('Yearly_Bald', yearlyBaldSchema)
 const GlobalLeaderboard = mongoose.model(
-  'Global_Leaderboard',
+  'GlobalLeaderboard',
   globalLeaderboardSchema
 )
 

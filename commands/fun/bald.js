@@ -6,7 +6,7 @@ const {
 } = require('../../utils/baldUtils')
 
 module.exports = {
-  cooldown: 5,
+  cooldown: 0,
   category: 'fun',
   data: new SlashCommandBuilder()
     .setName('bald')
