@@ -1,0 +1,45 @@
+/*
+* Complete a task by pressing Alt+d @done
+* Re-open a completed task by pressing Alt+d
+* Cancel a task by pressing Alt+c @cancelled
+* Complete a cancelled task by pressing Alt+d
+*/
+
+Project overview:
+  ✔ User can do a personal bald daily check @done (7/26/2024, 2:16:10 PM)
+  ✔ User can do a bold check on a random user @done (7/26/2024, 2:16:13 PM)
+  ☐ Limit command usage per command per user per day
+  ☐ Create a leaderboard for top daily, monthly, yearly
+  ☐ Make commands to get leaderboard data
+  ☐ Setup global ENV variables for Cooldown/Usagecount
+  ☐ Logging for what servers the bot is in
+
+Command usage:
+  ☐ Make the count limit based on the command per user per day
+  ☐ Testing
+
+Leaderboard:
+  ☐ Build the schema for daily
+  ☐ Build the schema for weekly
+  ☐ Build the schema for monthly
+  ☐ Build the schema for Leaderboards
+    ☐ Add the logic for flowing from day to monthly/yearly
+    ☐ Add logic for multiple years
+    ☐ Testing
+
+Commands:
+  ✔ Command for daily balds @done (7/26/2024, 2:43:16 PM)
+  ☐ Command for top 10
+    ☐ Daily
+    ☐ Monthly
+    ☐ Yearly
+
+Logging:
+  ☐ Schema for what servers the bot is in
+  ☐ Schema for error logging
+
+Testing before live:
+  ☐ Can the user do a bald check
+  ☐ Can the user bald check a target
+  ☐ Can the user retrieve leaderboard data
+  ☐ Can the bot function in multiple servers
