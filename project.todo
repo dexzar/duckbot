@@ -8,8 +8,8 @@
 Project overview:
   ✔ User can do a personal bald daily check @done (7/26/2024, 2:16:10 PM)
   ✔ User can do a bold check on a random user @done (7/26/2024, 2:16:13 PM)
-  ☐ Limit command usage per command per user per day
-  ☐ Create a leaderboard for top daily, monthly, yearly
+  ✔ Limit command usage per command per user per day @done (8/7/2024, 10:07:26 PM)
+  ✔ Create a leaderboard for top daily, monthly, yearly @done (8/7/2024, 10:07:29 PM)
   ☐ Make commands to get leaderboard data
   ☐ Setup global ENV variables for Cooldown/Usagecount
   ☐ Logging for what servers the bot is in
@@ -19,12 +19,12 @@ Command usage:
   ☐ Testing
 
 Leaderboard:
-  ☐ Build the schema for daily
-  ☐ Build the schema for weekly
-  ☐ Build the schema for monthly
-  ☐ Build the schema for Leaderboards
-    ☐ Add the logic for flowing from day to monthly/yearly
-    ☐ Add logic for multiple years
+  ✔ Build the schema for daily @done (8/7/2024, 10:07:40 PM)
+  ✔ Build the schema for weekly @done (8/7/2024, 10:07:41 PM)
+  ✔ Build the schema for monthly @done (8/7/2024, 10:07:42 PM)
+  ✔ Build the schema for Leaderboards @done (8/7/2024, 10:07:43 PM)
+    ✔ Add the logic for flowing from day to monthly/yearly @done (8/7/2024, 10:07:45 PM)
+    ✔ Add logic for multiple years @done (8/7/2024, 10:07:46 PM)
     ☐ Testing
 
 Commands:
